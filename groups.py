@@ -68,7 +68,7 @@ class FiniteGroup:
         return i in self.l
 
     def __eq__(self, other):
-        return self.op == other.op and sorted(self.l) == sorted(other.l)
+        return self.op == other.op and self.sorted() == other.sorted()
 
     def __le__(self, other):
         return self.op == other.op and set(self.l).issubset(set(other.l))
@@ -76,59 +76,85 @@ class FiniteGroup:
     def __lt__(self, other):
         return self<=other and self!=other
 
+    def sorted(self):
+        if not hasattr(self, '_sorted'):
+            self._sorted = sorted(self.l)
+        return list(self._sorted)
+
     def cayley(self):
-        if hasattr(self, '_cayley'):
-            return self._cayley
-        self._cayley = {}
-        for i in self.l:
-            for j in self.l:
-                self._cayley[(i,j)] = self.op(i,j)
+        if not hasattr(self, '_cayley'):
+            self._cayley = {}
+            l = self.sorted()
+            r = self.sorted()
+            for i in l:
+                for j in r:
+                    # print(i,j,flush=True)
+                    res = self.op(i,j)
+                    self._cayley[(i,j)] = res
+                    if hasattr(self, '_abelian') and self._abelian:
+                        self._cayley[(j,i)] = res
+                if hasattr(self, '_abelian') and self._abelian:
+                    r.remove(i)
         return self._cayley
 
     def orders(self):
-        if hasattr(self, '_orders'):
-            return self._orders
-        self._orders = {}
-        for i in self.l:
-            self._orders[i] = self.order(i)
+        if not hasattr(self, '_orders'):
+            self._orders = {}
+            for i in self.l:
+                self._orders[i] = self.order(i)
         return self._orders
 
     def revorders(self):
-        if hasattr(self, '_revorders'):
-            return self._revorders
-        self._revorders = {}
-        for i in self.orders():
-            order = self.orders()[i]
-            if not order in self._revorders:
-                self._revorders[order] = []
-            self._revorders[order].append(i)
+        if not hasattr(self, '_revorders'):
+            self._revorders = {}
+            for i in self.orders():
+                order = self.orders()[i]
+                if not order in self._revorders:
+                    self._revorders[order] = []
+                self._revorders[order].append(i)
         return self._revorders
 
     def cyclic(self):
-        if hasattr(self, '_cyclic'):
-            return self._cyclic
-        c = []
-        for i in self.l:
-            if sorted(self.l) == sorted([self.power(i,k) for k in range(1,self.order(i)+1)] if self.order(i) else []):
-                c.append(i)
-        self._cyclic = (len(c) != 0, c)
+        if not hasattr(self, '_cyclic'):
+            c = []
+            for i in self.l:
+                # print(i,flush=True)
+                if (i in self.l for i in ([self.power(i,k) for k in range(1,self.order(i)+1)] if self.order(i) else [])):
+                    c.append(i)
+            self._cyclic = (len(c) != 0, c)
+            if self._cyclic[0] and not hasattr(self, '_abelian'):
+                self._abelian = True
         return self._cyclic
 
-    def center(self):
-        if hasattr(self, '_center'):
-            return self._center
-        self._center = []
-        for i in self.l:
-            go = True
-            for j in self.l:
-                if self.op(i,j) != self.op(j,i):
-                    go = False
+    def abelian(self):
+        if not hasattr(self, '_abelian'):
+            self._abelian = True
+            for i in self.l:
+                for j in self.l:
+                    # print(i,j,flush=True)
+                    if self.op(i,j) != self.op(j,i):
+                        self._abelian = False
+                        break
+                if not self._abelian:
                     break
-            if go:
-                self._center.append(i)
+        return self._abelian
+
+    def center(self):
+        if not hasattr(self, '_center'):
+            if hasattr(self, '_abelian') and self._abelian:
+                self._center = self.sorted()
+            else:
+                self._center = []
+                for i in self.l:
+                    go = True
+                    for j in self.l:
+                        if self.op(i,j) != self.op(j,i):
+                            go = False
+                            break
+                    if go:
+                        self._center.append(i)
         return self._center
 
-    # @functools.lru_cache()
     def centralizer(self, g):
         c = []
         for i in self.l:
@@ -152,11 +178,15 @@ class FiniteGroup:
         if len(self.l) == k:
             return [self]
         subs = []
-        if k in self.revorders():
-            for i in self.revorders()[k]:
-                g = GeneratorGroup(i, self.op)
-                if not g in subs:
-                    subs.append(g)
+        if hasattr(self, '_cyclic') and self._cyclic[0]:
+            if k in self.revorders():
+                subs.append(GeneratorGroup(self.revorders()[k][0], self.op))
+        else:
+            if k in self.revorders():
+                for i in self.revorders()[k]:
+                    g = GeneratorGroup(i, self.op)
+                    if not g in subs:
+                        subs.append(g)
         return subs if subs!=[] else [NullGroup()]
 
 class NullGroup(FiniteGroup):
@@ -171,6 +201,7 @@ class GeneratorGroup(FiniteGroup):
                 term = op(term,i)
             return term
 
+        self._abelian = True
         if name==None:
             name = '<'+format(g,'#')+'>'
         k = 2
@@ -191,7 +222,7 @@ class PermutationGroup(FiniteGroup):
             p = []
             for i in l:
                 p.append(Permutation(i))
-        super(PermutationGroup, self).__init__(p if p != None else l, getop('mult'), e, name=name)
+        super(PermutationGroup, self).__init__(p if p != None else l, getop('mult', cache=len(l)**2), e, name=name)
 
 class MatrixGroup(FiniteGroup):
     def __init__(self, l, op=getop('mult'), name=None):
@@ -203,11 +234,11 @@ class MatrixGroup(FiniteGroup):
         e = None
         super(MatrixGroup, self).__init__(p if p!= None else l, op, name=name)
 
-class GL(MatrixGroup):
+class M(MatrixGroup):
     def det_case(self, x):
-        return x.det()!=0
+        return True
 
-    def __init__(self, s, g, op=getop('mult'), name=None):
+    def __init__(self, s, g, op=None, name=None):
         m = []
         def loop_rec(g, n, l={}, rows=[]):
             if n >= 1:
@@ -231,26 +262,43 @@ class GL(MatrixGroup):
             t = Matrix(mat)
             if self.det_case(t):
                 m.append(t)
-        super(GL, self).__init__(m, op, name='GL('+str(s)+', '+format(g,'#')+')')
+        if name == None:
+            name = 'M('+str(s)+', '+format(g,'#')+')'
+        if op==None:
+            op = getop('mult', cache=len(m)**2)
+        super(M, self).__init__(m, op, name)
 
-class SL(GL):
+class GL(M):
+    def det_case(self, x):
+        return x.det()!=0
+
+    def __init__(self, s, g, op=None):
+        super(GL, self).__init__(s, g, op, name='GL('+str(s)+', '+format(g,'#')+')')
+
+class SL(M):
     def det_case(self, x):
         return x.det()==1
 
-    def __init__(self, s, g, op=getop('mult')):
+    def __init__(self, s, g, op=None):
         super(SL, self).__init__(s, g, op, name='SL('+str(s)+', '+format(g,'#')+')')
 
 class Aff(MatrixGroup):
-    def __init__(self, g, op=getop('mult')):
+    def __init__(self, g, op=None):
         m = []
         for a in g.l:
             if a != 0:
                 for b in g.l:
                     m.append(Matrix([[a,b],[0,1]]))
+        if op==None:
+            op = getop('mult', (len(m)**2))
         super(Aff, self).__init__(m, op, name='Aff('+format(g,'#')+')')
 
 class S(PermutationGroup):
     def __init__(self, n):
+        if n>0 and n<=2:
+            self._abelian = True
+        else:
+            self._abelian = False
         l = list(itertools.permutations(range(1,n+1)))
         p = []
         for s in l:
@@ -277,10 +325,12 @@ class D(PermutationGroup):
                 l.append(list(r[i:])+list(r[:i]))
         name = []
         if n > 0:
+            self._abelian = True
             name.append('e')
         if n > 1:
             name.append('f')
         if n > 2:
+            self._abelian = False
             name+=['f'+str(i) for i in range(2,n)]+['g', 'gf']+['gf'+str(i) for i in range(2,n)]
         for s in range(len(l)):
             d = {}
@@ -291,11 +341,13 @@ class D(PermutationGroup):
 
 class U(FiniteGroup):
     def __init__(self, n):
-        super(U, self).__init__([i for i in range(n) if gcd(i,n)==1] if n!=1 else [1], getop('multmod', n), 1, name='U('+str(n)+')')
+        self._abelian = True
+        super(U, self).__init__([i for i in range(n) if gcd(i,n)==1] if n!=1 else [1], getop('multmod', n, cache=0), 1 if n>0 else None, name='U('+str(n)+')')
 
 class Z(FiniteGroup):
     def __init__(self, n):
-        super(Z, self).__init__([i for i in range(n)], getop('addmod', n), 0, name='Z('+str(n)+')')
+        self._abelian = True
+        super(Z, self).__init__([i for i in range(n)], getop('addmod', n, cache=0), 0 if n>0 else None, name='Z('+str(n)+')')
 
     def subgroup(self, k):
         if len(self.l)%k == 0:
@@ -307,25 +359,33 @@ class Z(FiniteGroup):
 
 class Zx(FiniteGroup):
     def __init__(self, n):
-        super(Zx, self).__init__([i for i in range(1,n)], getop('multmod', n), 1, name='Zx('+str(n)+')')
+        self._abelian = True
+        super(Zx, self).__init__([i for i in range(1,n)], getop('multmod', n, cache=0), 1 if n>1 else None, name='Zx('+str(n)+')')
 
 if __name__ == '__main__':
-
     def task(group, *args):
         task_start = time.clock()
         g = group(*args)
         print('group:',format(g,'#'),'=',g)
+        print('\nlength:',len(g.l))
         print('\nidentity:',g.identity(),flush=True)
         if g.identity()!=None:
-            print('\ncyclic:',g.cyclic())
-            print('\norders:',g.orders())
+            print('\ncyclic:',g.cyclic(),flush=True)
+            print('\norders:',g.orders(),flush=True)
+            print('\nabelian:',g.abelian(),flush=True)
+            print('\ncenter:',g.center(),flush=True)
+            print('\ncayley:',g.cayley(),flush=True)
             print('\nsubgroups:')
             for i in range(1,len(g)+1):
                 subs = g.subgroups(i)
                 if subs[0] != NullGroup():
                     print(i)
                     for s in subs:
-                        print('\t:',s)
+                        print('\t:',s,flush=True)
+            print('\ncache:')
+            print('\tpower:',g.power.cache_info())
+            print('\torder:',g.power.cache_info())
+            print('\top:',g.op.cache_info())
         task_end = time.clock()
         print('\ntask_time =',task_end - task_start,'s\n')
         print('*****************************************\n',flush=True)
@@ -333,12 +393,22 @@ if __name__ == '__main__':
     start = time.clock()
 
     # Main code starts here
-
-    task(SL, 3, Z(2), getop('matrixmod', 2))
-    task(Aff, D(2))
+    n=2
+    g=4
+    z = Z(g)
+    task(M, n, z, getop('matrixelement', z.op, id=1, cache=(g**(n**2))**2))
+    task(GL, n, z, getop('matrixelement', z.op, id=1))
+    task(SL, n, z, getop('matrixelement', z.op, id=1))
+    n=2
+    g=3
+    z = Z(g)
+    task(M, n, z, getop('matrixmod', g, id=1, cache=(g**(n**2))**2))
+    task(GL, n, z, getop('matrixmod', g, id=1))
+    task(SL, n, z, getop('matrixmod', g, id=1))
+    task(Aff, D(6))
     task(D, 5)
     task(S, 5)
-    task(U, 283)
+    task(U, 263)
 
     # Main code ends here
 

@@ -28,15 +28,14 @@ class Matrix:
         return Matrix(m)
 
     def det(self):
-        if hasattr(self, '_det'):
-            return self._det
-        if self.rows()!=self.cols():
-            return None
-        if self.rows()==1:
-            return self.m.tolist()[0][0]
-        self._det = 0
-        for c in range(self.cols()):
-            self._det += ((-1)**(c%2)) * self.m.tolist()[0][c] * self.cut(0, c).det()
+        if not hasattr(self, '_det'):
+            if self.rows()!=self.cols():
+                return None
+            if self.rows()==1:
+                return self.m.tolist()[0][0]
+            self._det = 0
+            for c in range(self.cols()):
+                self._det += ((-1)**(c%2)) * self.m.tolist()[0][c] * self.cut(0, c).det()
         return self._det
 
     def __format__(self, format_spec):
