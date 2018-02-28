@@ -119,7 +119,7 @@ class FiniteGroup:
             c = []
             for i in self.l:
                 # print(i,flush=True)
-                if (i in self.l for i in ([self.power(i,k) for k in range(1,self.order(i)+1)] if self.order(i) else [])):
+                if self.sorted() == sorted([self.power(i,k) for k in range(1,self.order(i)+1)] if self.order(i) else []):
                     c.append(i)
             self._cyclic = (len(c) != 0, c)
             if self._cyclic[0] and not hasattr(self, '_abelian'):
