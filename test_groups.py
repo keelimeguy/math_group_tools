@@ -57,6 +57,12 @@ class GroupsTestCase(unittest.TestCase):
             Permutation([2, 1])*
             Permutation([2, 3])*
             Permutation([2, 1]))
+        self.assertEqual(Permutation([1, 3]).sign(),-1)
+        self.assertEqual(Permutation([1, 3, 5]).sign(),1)
+        self.assertEqual((Permutation([3, 5])*
+            Permutation([6, 4, 7])*
+            Permutation([1, 12, 14])*
+            Permutation([5, 3])).sign(),1)
 
     def test_permutationgroup(self):
         self.assertEqual(D(4), PermutationGroup([

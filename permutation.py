@@ -85,3 +85,21 @@ class Permutation:
     __radd__ = __add__
     __rmul__ = __mul__
     __mod__ = __mul__
+
+    def sign(self):
+        # Return 1 for even, -1 for even
+        if len(self.d) == 0:
+            return -1
+        checked = []
+        sign = 0
+        for i in self.d:
+            if i in checked:
+                continue
+            cur = i
+            cycle_length = 1
+            while cur not in checked:
+                checked.append(cur)
+                cur = self.d[cur]
+                cycle_length += 1
+            sign = (sign+cycle_length)%2
+        return -1 if sign else 1
