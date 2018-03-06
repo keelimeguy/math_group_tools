@@ -63,6 +63,8 @@ class GroupsTestCase(unittest.TestCase):
             Permutation([6, 4, 7])*
             Permutation([1, 12, 14])*
             Permutation([5, 3])).sign(),1)
+        self.assertEqual((Permutation([3, 5])*
+            Permutation([5, 3])).sign(),1)
 
     def test_permutationgroup(self):
         self.assertEqual(D(4), PermutationGroup([

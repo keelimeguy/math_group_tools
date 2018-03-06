@@ -87,9 +87,9 @@ class Permutation:
     __mod__ = __mul__
 
     def sign(self):
-        # Return 1 for even, -1 for even
+        # Return 1 for even, -1 for odd
         if len(self.d) == 0:
-            return -1
+            return 1
         checked = []
         sign = 0
         for i in self.d:
