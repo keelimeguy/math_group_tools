@@ -184,6 +184,12 @@ class FiniteGroup:
                 c.append(i)
         return c
 
+    def lcosets(self, h):
+        pass
+
+    def rcosets(self, h):
+        pass
+
     def subgroup(self, k):
         if len(self.l) == k:
             return self
@@ -479,11 +485,13 @@ if __name__ == '__main__':
                         help="Give info on available groups or arguments to a group.\
                             e.g. \'-i -g <group>\'")
     parser.add_argument('-t', '--task', action="append", nargs="+",
-                        help='The subtasks to perform, as space separated list. By default: all of them are included.\
-                            Possible tasks: cyclic, orders, abelian, center, cayley, subgroups, cache')
+                        help='The subtasks to perform, as space separated list.\
+                            Default is \'-t cyclic orders abelian center cayley subgroups cache\'.\
+                            Possible tasks: cyclic, orders, abelian, center, centralizer{group}, lcosets{group}, rcosets{group}, cayley, subgroups, cache')
     parser.add_argument('-n', '--notask', action="append", nargs="+",
                         help='The subtasks to skip, as space separated list. Ignored if --task is used.\
-                            By default: all tasks performed, you may skip some of these tasks by including them in this list.\
+                            Default is \'-t cyclic orders abelian center cayley subgroups cache\', the --notask argument\
+                            allows you to skip any of these default tasks.\
                             Possible tasks: cyclic, orders, abelian, center, cayley, subgroups, cache')
 
     args = parser.parse_args()
@@ -508,6 +516,10 @@ if __name__ == '__main__':
             print("Available groups:", sorted(list(group_type_list)))
         exit(0)
 
+    if args.group == None:
+        print('Try running with -h next time.')
+        exit(0)
+
     def subgroup_task(g):
         print('\nsubgroups:')
         for i in range(1,len(g)+1):
@@ -523,12 +535,16 @@ if __name__ == '__main__':
         print('\torder:',g.power.cache_info())
         print('\top:',g.op.cache_info())
 
-    task_list = ['cyclic', 'orders', 'abelian', 'center', 'cayley', 'subgroups', 'cache']
+    task_list = ['cyclic', 'orders', 'abelian', 'center', 'centralizer', 'lcosets', 'rcosets', 'cayley', 'subgroups', 'cache']
+    default_task_list = ['cyclic', 'orders', 'abelian', 'center', 'cayley', 'subgroups', 'cache']
     task_dict = {
         'cyclic':(lambda g: print('\ncyclic:',g.cyclic(),flush=True)),
         'orders':(lambda g: print('\norders:',g.orders(),flush=True)),
         'abelian':(lambda g: print('\nabelian:',g.abelian(),flush=True)),
         'center':(lambda g: print('\ncenter:',g.center(),flush=True)),
+        'centralizer':(lambda g, h: print('\ncentralizer('+format(h,'#')+'):',g.centralizer(h),flush=True)),
+        'lcosets':(lambda g, h: print('\nlcosets('+format(h,'#')+'):',g.lcosets(h),flush=True)),
+        'rcosets':(lambda g, h: print('\nrcosets('+format(h,'#')+'):',g.rcosets(h),flush=True)),
         'cayley':(lambda g: print('\ncayley:',g.cayley(),flush=True)),
         'subgroups':subgroup_task,
         'cache':cache_task,
@@ -537,15 +553,16 @@ if __name__ == '__main__':
     tasks_to_perform = []
     if args.task:
         for t in args.task[0]:
-            if t in task_list:
+            t = re.compile("{|}").split(t)
+            if t[0] in task_list:
                 tasks_to_perform.append(t)
     elif args.notask:
-        for t in task_list:
+        for t in default_task_list:
             if t not in args.notask[0]:
-                tasks_to_perform.append(t)
+                tasks_to_perform.append([t])
     else:
-        for t in task_list:
-            tasks_to_perform.append(t)
+        for t in default_task_list:
+            tasks_to_perform.append([t])
 
     def task(group, *args, **kwargs):
         task_start = time.clock()
@@ -555,26 +572,29 @@ if __name__ == '__main__':
         print('\nidentity:',g.identity(),flush=True)
         if g.identity()!=None:
             for task in tasks_to_perform:
-                task_dict[task](g)
+                if len(task)>1:
+                    if ',' in task[1]:
+                        h = parse_group([''.join(task[1][:task[1].index(',')]), ''.join(task[1][task[1].index(',')+1:])])
+                        task_dict[task[0]](g, h[0](*h[1], **h[2]))
+                    else:
+                        h = parse_group([task[1],""])
+                        task_dict[task[0]](g, h[0](*h[1], **h[2]))
+                else:
+                    task_dict[task[0]](g)
         task_end = time.clock()
         print('\ntask_time =',task_end - task_start,'s\n')
         print('*****************************************\n',flush=True)
         return task_end - task_start
 
-    if args.group == None:
-        print('Try running with -h next time.')
-        exit(0)
-
-    tasks = []
-    for g in args.group:
+    def parse_group(g):
         if g[0] not in group_type_list:
             print('Warning: Group type', g[0], 'not available.')
+            return None
         else:
-            fail = False
             skip = False
             in_equality = []
             scope=[]
-            task_args = []
+            group_args = []
             if len(g) > 1:
                 g_args = re.compile("(<|>|{|}|\[|\]|,|=)").split(g[1])
                 for i, arg in enumerate(g_args):
@@ -597,9 +617,9 @@ if __name__ == '__main__':
                                     scope[1][1].append(new_scope_arg[0][0](*new_scope_arg[0][1:],**new_scope_arg[1]))
                                 else:
                                     if in_equality:
-                                        task_args.append({in_equality[0]: new_scope_arg[0][0](*new_scope_arg[0][1:],**new_scope_arg[1])})
+                                        group_args.append({in_equality[0]: new_scope_arg[0][0](*new_scope_arg[0][1:],**new_scope_arg[1])})
                                     else:
-                                        task_args.append(new_scope_arg[0][0](*new_scope_arg[0][1:],**new_scope_arg[1]))
+                                        group_args.append(new_scope_arg[0][0](*new_scope_arg[0][1:],**new_scope_arg[1]))
                                 scope.pop(0)
                             elif arg == '=':
                                 scope[0][1].pop()
@@ -611,17 +631,16 @@ if __name__ == '__main__':
                                 scope[0][1].append(group_type_list[arg])
                             else:
                                 print('Warning: Group type', arg, 'not available.')
-                                fail = True
-                                break
+                                return None
                         elif scope[0][0] == '[':
                             if arg == ']':
                                 if len(scope)>1:
                                     scope[1][1].append(scope[0][1])
                                 else:
                                     if in_equality:
-                                        task_args.append({in_equality[0]: scope[0][1]})
+                                        group_args.append({in_equality[0]: scope[0][1]})
                                     else:
-                                        task_args.append(scope[0][1])
+                                        group_args.append(scope[0][1])
                                 scope.pop(0)
                             else:
                                 # Parse list elements as ints until better solution found
@@ -639,9 +658,9 @@ if __name__ == '__main__':
                                     scope[1][1].append(getop(new_scope_arg[0][0],*new_scope_arg[0][1:],**new_scope_arg[1]))
                                 else:
                                     if in_equality:
-                                        task_args.append({in_equality[0]: getop(new_scope_arg[0][0],*new_scope_arg[0][1:],**new_scope_arg[1])})
+                                        group_args.append({in_equality[0]: getop(new_scope_arg[0][0],*new_scope_arg[0][1:],**new_scope_arg[1])})
                                     else:
-                                        task_args.append(getop(new_scope_arg[0][0],*new_scope_arg[0][1:],**new_scope_arg[1]))
+                                        group_args.append(getop(new_scope_arg[0][0],*new_scope_arg[0][1:],**new_scope_arg[1]))
                                 scope.pop(0)
                             elif arg == '=':
                                 scope[0][1].pop()
@@ -650,29 +669,33 @@ if __name__ == '__main__':
                             else:
                                 scope[0][1].append(arg)
                     elif arg == '=':
-                        task_args.pop()
+                        group_args.pop()
                         if g_args[i+1] not in ['<', '{', '[', '']:
-                            task_args.append({g_args[i-1]: g_args[i+1]})
+                            group_args.append({g_args[i-1]: g_args[i+1]})
                             skip = True
                         else:
                             in_equality = [g_args[i-1]]
                     elif arg:
-                        task_args.append(arg)
+                        group_args.append(arg)
                     if i == len(g_args)-1 and (scope or skip):
-                        fail = True
-                        break
-            if not fail:
-                new_task_arg = [[],{}]
-                for o in task_args:
-                    if isinstance(o,dict):
-                        for k in o:
-                            new_task_arg[1][k] = o[k]
-                    else:
-                        new_task_arg[0].append(o)
-                tasks.append((group_type_list[g[0]], new_task_arg[0], new_task_arg[1]))
+                        return None
+            new_group_arg = [[],{}]
+            for o in group_args:
+                if isinstance(o,dict):
+                    for k in o:
+                        new_group_arg[1][k] = o[k]
+                else:
+                    new_group_arg[0].append(o)
+            return (group_type_list[g[0]], new_group_arg[0], new_group_arg[1])
+
+    groups = []
+    for g in args.group:
+        new_group = parse_group(g)
+        if new_group:
+            groups.append(new_group)
 
     total_task_time = 0
-    for t in tasks:
-        total_task_time += task(t[0], *t[1], **t[2])
+    for g in groups:
+        total_task_time += task(g[0], *g[1], **g[2])
 
     print('\ntotal_time =',total_task_time,'s')

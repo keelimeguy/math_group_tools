@@ -84,7 +84,7 @@ class GroupsTestCase(unittest.TestCase):
             self.assertEqual(Z(i),
                 GeneratorGroup(1 if i>1 else (0 if i==1 else None), getop('addmod', i)))
 
-    def test_permtationmatrix(self):
+    def test_permutationmatrix(self):
         self.assertEqual(Aff(D(2)), GeneratorGroup(Matrix([
             [Permutation([1,2]),Permutation([1,2])],
             [0,1]]), Aff(D(2)).op))
