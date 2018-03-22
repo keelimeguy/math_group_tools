@@ -7,9 +7,9 @@ class Operation:
     def __init__(self, op, name, cache=128):
         self.op = op
         self.name = name
-        self.cache = cache
-        if cache!=0:
-            @functools.lru_cache(cache)
+        self.cache = int(cache)
+        if self.cache!=0:
+            @functools.lru_cache(self.cache)
             def _call(*args):
                 return self.op(*args)
         else:
@@ -38,10 +38,10 @@ class Operation:
 
 ops = { 'add':(lambda *args: Operation(lambda x,y: x+y, 'add', *args),{}),
         'mult':(lambda *args: Operation(lambda x,y: x*y, 'mult', *args),{}),
-        'matrixmod':(lambda mod,*args: Operation(lambda x,y: Matrix([[c%mod for c in r] for r in (x*y).m.tolist()]), 'matrixmod'+str(mod), *args),{}),
+        'matrixmod':(lambda mod,*args: Operation(lambda x,y: Matrix([[c%int(mod) for c in r] for r in (x*y).m.tolist()]), 'matrixmod'+str(mod), *args),{}),
         'matrixelement':(lambda eop,*args: Operation(lambda x,y: Matrix([[eop(x.m.tolist()[r][c],y.m.tolist()[r][c]) for c in range(len(x.m.tolist()[r]))] for r in range(len(x.m.tolist()))]), 'matrixelement'+str(eop), *args),{}),
-        'addmod':(lambda mod,*args: Operation(lambda x,y: (x+y)%mod, 'addmod'+str(mod), *args),{}),
-        'multmod':(lambda mod,*args: Operation(lambda x,y: (x*y)%mod, 'multmod'+str(mod), *args),{})}
+        'addmod':(lambda mod,*args: Operation(lambda x,y: (x+y)%int(mod), 'addmod'+str(mod), *args),{}),
+        'multmod':(lambda mod,*args: Operation(lambda x,y: (x*y)%int(mod), 'multmod'+str(mod), *args),{})}
 
 def getop(type, *args, **kwargs):
     op = None

@@ -1,6 +1,8 @@
 import itertools
 import functools
+import argparse
 import time
+import re
 from math import floor
 from fractions import gcd
 
@@ -9,6 +11,13 @@ from matrix import *
 from permutation import *
 
 class FiniteGroup:
+    def print_help():
+        print('FiniteGroup arguments:')
+        print('\t','l = list of elements')
+        print('\t','op = group operation')
+        print('\t','?e = identity element')
+        print('\t','?name = name of the group')
+
     def __init__(self, l, op, e=None, name=None):
         self.l = l
         self.op = op
@@ -63,6 +72,10 @@ class FiniteGroup:
 
     def __len__(self):
         return len(self.l)
+
+    def __iter__(self):
+        for e in self.l:
+            yield e
 
     def __contains__(self, i):
         return i in self.l
@@ -190,10 +203,19 @@ class FiniteGroup:
         return subs if subs!=[] else [NullGroup()]
 
 class NullGroup(FiniteGroup):
+    def print_help():
+        print('NullGroup arguments: None')
+
     def __init__(self):
         super(NullGroup, self).__init__([], getop('null'), name='NullGroup')
 
 class GeneratorGroup(FiniteGroup):
+    def print_help():
+        print('GeneratorGroup arguments:')
+        print('\t','g = generator element')
+        print('\t','op = group operation')
+        print('\t','?name = name of the group')
+
     def __init__(self, g, op, name=None):
         def power_(i, p):
             term = i
@@ -216,6 +238,12 @@ class GeneratorGroup(FiniteGroup):
         super(GeneratorGroup, self).__init__(l, op, name=name)
 
 class PermutationGroup(FiniteGroup):
+    def print_help():
+        print('PermutationGroup arguments:')
+        print('\t','l = list of elements')
+        print('\t','?e = identity element')
+        print('\t','?name = name of the group')
+
     def __init__(self, l, e=Permutation([]), name=None):
         p = None
         if len(l)>0 and not isinstance(l[0], Permutation):
@@ -225,6 +253,12 @@ class PermutationGroup(FiniteGroup):
         super(PermutationGroup, self).__init__(p if p != None else l, getop('mult', cache=len(l)**2), e, name=name)
 
 class MatrixGroup(FiniteGroup):
+    def print_help():
+        print('MatrixGroup arguments:')
+        print('\t','l = list of elements')
+        print('\t','?op = group operation')
+        print('\t','?name = name of the group')
+
     def __init__(self, l, op=getop('mult'), name=None):
         p = None
         if len(l)>0 and not isinstance(l[0], Matrix):
@@ -235,21 +269,24 @@ class MatrixGroup(FiniteGroup):
         super(MatrixGroup, self).__init__(p if p!= None else l, op, name=name)
 
 class M(MatrixGroup):
+    def print_help():
+        print('M arguments:')
+        print('\t','s = square size of matrices')
+        print('\t','g = group or list of elements')
+        print('\t','?op = group operation')
+        print('\t','?name = name of the group')
+
     def det_case(self, x):
         return True
 
     def __init__(self, s, g, op=None, name=None):
+        s = int(s)
         m = []
         def loop_rec(g, n, l={}, rows=[]):
             if n >= 1:
-                if isinstance(g, FiniteGroup):
-                    for a in g.l:
-                        l[n] = a
-                        rows = loop_rec(g, n - 1, l, rows)
-                else:
-                    for a in g:
-                        l[n] = a
-                        rows = loop_rec(g, n - 1, l, rows)
+                for a in g:
+                    l[n] = a
+                    rows = loop_rec(g, n - 1, l, rows)
             else:
                 r = []
                 for i in l:
@@ -263,38 +300,62 @@ class M(MatrixGroup):
             if self.det_case(t):
                 m.append(t)
         if name == None:
-            name = 'M('+str(s)+', '+format(g,'#')+')'
+            name = 'M('+str(s)+', '+(format(g,'#') if isinstance(g, FiniteGroup) else str(g))+')'
         if op==None:
             op = getop('mult', cache=len(m)**2)
         super(M, self).__init__(m, op, name)
 
 class GL(M):
+    def print_help():
+        print('GL arguments:')
+        print('\t','s = square size of matrices')
+        print('\t','g = group or list of elements')
+        print('\t','?op = group operation')
+
     def det_case(self, x):
         return x.det()!=0
 
     def __init__(self, s, g, op=None):
-        super(GL, self).__init__(s, g, op, name='GL('+str(s)+', '+format(g,'#')+')')
+        s = int(s)
+        super(GL, self).__init__(s, g, op, name='GL('+str(s)+', '+(format(g,'#') if isinstance(g, FiniteGroup) else str(g))+')')
 
 class SL(M):
+    def print_help():
+        print('SL arguments:')
+        print('\t','s = square size of matrices')
+        print('\t','g = group or list of elements')
+        print('\t','?op = group operation')
+
     def det_case(self, x):
         return x.det()==1
 
     def __init__(self, s, g, op=None):
-        super(SL, self).__init__(s, g, op, name='SL('+str(s)+', '+format(g,'#')+')')
+        s = int(s)
+        super(SL, self).__init__(s, g, op, name='SL('+str(s)+', '+(format(g,'#') if isinstance(g, FiniteGroup) else str(g))+')')
 
 class Aff(MatrixGroup):
+    def print_help():
+        print('Aff arguments:')
+        print('\t','g = group or list of elements')
+        print('\t','?op = group operation')
+
     def __init__(self, g, op=None):
         m = []
-        for a in g.l:
+        for a in g:
             if a != 0:
-                for b in g.l:
+                for b in g:
                     m.append(Matrix([[a,b],[0,1]]))
         if op==None:
             op = getop('mult', (len(m)**2))
-        super(Aff, self).__init__(m, op, name='Aff('+format(g,'#')+')')
+        super(Aff, self).__init__(m, op, name='Aff('+(format(g,'#') if isinstance(g, FiniteGroup) else str(g))+')')
 
 class S(PermutationGroup):
+    def print_help():
+        print('S arguments:')
+        print('\t','n = group number')
+
     def __init__(self, n):
+        n = int(n)
         if n>0 and n<=2:
             self._abelian = True
         else:
@@ -309,7 +370,12 @@ class S(PermutationGroup):
         super(S, self).__init__(p, name='S('+str(n)+')')
 
 class D(PermutationGroup):
+    def print_help():
+        print('D arguments:')
+        print('\t','n = group number')
+
     def __init__(self, n):
+        n = int(n)
         p = []
         l = []
         r = list(range(1,n+1))
@@ -340,12 +406,22 @@ class D(PermutationGroup):
         super(D, self).__init__(p, p[0], name='D('+str(n)+')')
 
 class U(FiniteGroup):
+    def print_help():
+        print('U arguments:')
+        print('\t','n = group number')
+
     def __init__(self, n):
+        n = int(n)
         self._abelian = True
         super(U, self).__init__([i for i in range(n) if gcd(i,n)==1] if n!=1 else [1], getop('multmod', n, cache=0), 1 if n>0 else None, name='U('+str(n)+')')
 
 class Z(FiniteGroup):
+    def print_help():
+        print('Z arguments:')
+        print('\t','n = group number')
+
     def __init__(self, n):
+        n = int(n)
         self._abelian = True
         super(Z, self).__init__([i for i in range(n)], getop('addmod', n, cache=0), 0 if n>0 else None, name='Z('+str(n)+')')
 
@@ -358,59 +434,228 @@ class Z(FiniteGroup):
         return [self.subgroup(k)]
 
 class Zx(FiniteGroup):
+    def print_help():
+        print('Zx arguments:')
+        print('\t','n = group number')
+
     def __init__(self, n):
+        n = int(n)
         self._abelian = True
         super(Zx, self).__init__([i for i in range(1,n)], getop('multmod', n, cache=0), 1 if n>1 else None, name='Zx('+str(n)+')')
 
+
+
+
+
 if __name__ == '__main__':
-    def task(group, *args):
+    def append_required_length(nmin,nmax):
+        class AppendRequiredLength(argparse.Action):
+            def __call__(self, parser, args, values, option_string=None):
+                if not nmin<=len(values)<=nmax:
+                    msg='Argument "{f}" requires between {nmin} and {nmax} arguments'.format(
+                        f=self.dest,nmin=nmin,nmax=nmax)
+                    raise argparse.ArgumentTypeError(msg)
+                if hasattr(args, self.dest):
+                    current_values = getattr(args, self.dest)
+                    try:
+                        current_values.extend([values])
+                    except AttributeError:
+                        current_values = [values]
+                    finally:
+                        setattr(args, self.dest, current_values)
+                else:
+                    setattr(args, self.dest, [values])
+        return AppendRequiredLength
+
+    parser = argparse.ArgumentParser(
+        description='Find properties/desciptions of a given group.')
+    parser.add_argument('-g', '--group', action=append_required_length(1,2), nargs='+', metavar=('group','args'),
+                        help='The type of group to use, then comma separated arguments to the group.')
+    parser.add_argument('-i', '--info', action="store_true",
+                        help="Give info on available groups or arguments to a group.\
+                            e.g. \'-i -g <group>\'")
+    parser.add_argument('-t', '--task', action="append", nargs="+",
+                        help='The subtasks to perform, as space separated list. By default: all of them are included.\
+                            Possible tasks: cyclic, orders, abelian, center, cayley, subgroups, cache')
+    parser.add_argument('-n', '--notask', action="append", nargs="+",
+                        help='The subtasks to skip, as space separated list. Ignored if --task is used.\
+                            By default: all tasks performed, you may skip some of these tasks by including them in this list.\
+                            Possible tasks: cyclic, orders, abelian, center, cayley, subgroups, cache')
+
+    args = parser.parse_args()
+
+    group_type_list = {'Zx':Zx, 'Z':Z, 'U':U, 'D':D, 'S':S, 'Aff':Aff, 'SL':SL,
+                        'GL':GL, 'M':M}
+
+    if args.info:
+        if args.group:
+            print('Arguments are comma separated')
+            print('\tlists are given as, comma separated within []')
+            print('\tgroups are given as, type then arguments comma separated within {}')
+            print('\toperations are given as, type then arguments comma separated within <>')
+            print('\te.g. \'python groups.py -g S 4 -g M \"2,{Z,2},<matrixelement,<addmod,2>,cache=256>\"\'')
+            for g in args.group:
+                if g[0] in group_type_list:
+                    group_type_list[g[0]].print_help()
+                else:
+                    print('Warning: Group type', g[0], 'not available.')
+        else:
+            print("Available groups:", sorted(list(group_type_list)))
+        exit(0)
+
+    def subgroup_task(g):
+        print('\nsubgroups:')
+        for i in range(1,len(g)+1):
+            subs = g.subgroups(i)
+            if subs[0] != NullGroup():
+                print(i)
+                for s in subs:
+                    print('\t:',s,flush=True)
+
+    def cache_task(g):
+        print('\ncache:')
+        print('\tpower:',g.power.cache_info())
+        print('\torder:',g.power.cache_info())
+        print('\top:',g.op.cache_info())
+
+    task_list = ['cyclic', 'orders', 'abelian', 'center', 'cayley', 'subgroups', 'cache']
+    task_dict = {
+        'cyclic':(lambda g: print('\ncyclic:',g.cyclic(),flush=True)),
+        'orders':(lambda g: print('\norders:',g.orders(),flush=True)),
+        'abelian':(lambda g: print('\nabelian:',g.abelian(),flush=True)),
+        'center':(lambda g: print('\ncenter:',g.center(),flush=True)),
+        'cayley':(lambda g: print('\ncayley:',g.cayley(),flush=True)),
+        'subgroups':subgroup_task,
+        'cache':cache_task,
+    }
+
+    tasks_to_perform = []
+    if args.task:
+        for t in args.task[0]:
+            if t in task_list:
+                tasks_to_perform.append(t)
+    elif args.notask:
+        for t in task_list:
+            if t not in args.notask[0]:
+                tasks_to_perform.append(t)
+    else:
+        for t in task_list:
+            tasks_to_perform.append(t)
+
+    def task(group, *args, **kwargs):
         task_start = time.clock()
-        g = group(*args)
+        g = group(*args, **kwargs)
         print('group:',format(g,'#'),'=',g)
-        print('\nlength:',len(g.l))
+        print('\nlength:',len(g))
         print('\nidentity:',g.identity(),flush=True)
         if g.identity()!=None:
-            print('\ncyclic:',g.cyclic(),flush=True)
-            print('\norders:',g.orders(),flush=True)
-            print('\nabelian:',g.abelian(),flush=True)
-            print('\ncenter:',g.center(),flush=True)
-            print('\ncayley:',g.cayley(),flush=True)
-            print('\nsubgroups:')
-            for i in range(1,len(g)+1):
-                subs = g.subgroups(i)
-                if subs[0] != NullGroup():
-                    print(i)
-                    for s in subs:
-                        print('\t:',s,flush=True)
-            print('\ncache:')
-            print('\tpower:',g.power.cache_info())
-            print('\torder:',g.power.cache_info())
-            print('\top:',g.op.cache_info())
+            for task in tasks_to_perform:
+                task_dict[task](g)
         task_end = time.clock()
         print('\ntask_time =',task_end - task_start,'s\n')
         print('*****************************************\n',flush=True)
+        return task_end - task_start
 
-    start = time.clock()
+    if args.group == None:
+        print('Try running with -h next time.')
+        exit(0)
 
-    # Main code starts here
-    n=2
-    g=4
-    z = Z(g)
-    task(M, n, z, getop('matrixelement', z.op, id=1, cache=(g**(n**2))**2))
-    task(GL, n, z, getop('matrixelement', z.op, id=1))
-    task(SL, n, z, getop('matrixelement', z.op, id=1))
-    n=2
-    g=3
-    z = Z(g)
-    task(M, n, z, getop('matrixmod', g, id=1, cache=(g**(n**2))**2))
-    task(GL, n, z, getop('matrixmod', g, id=1))
-    task(SL, n, z, getop('matrixmod', g, id=1))
-    task(Aff, D(6))
-    task(D, 5)
-    task(S, 5)
-    task(U, 263)
+    tasks = []
+    for g in args.group:
+        if g[0] not in group_type_list:
+            print('Warning: Group type', g[0], 'not available.')
+        else:
+            fail = False
+            skip = False
+            scope=[]
+            task_args = []
+            if len(g) > 1:
+                g_args = re.compile("(<|>|{|}|\[|\]|,|=)").split(g[1])
+                for i, arg in enumerate(g_args):
+                    if skip or arg in [',', '']:
+                        skip = False
+                        continue
+                    elif arg in ['<', '{', '[']:
+                        scope = [(arg,[])] + scope
+                    elif scope:
+                        if scope[0][0] == '{':
+                            if arg == '}':
+                                new_scope_arg = [[],{}]
+                                for o in scope[0][1]:
+                                    if isinstance(o,dict):
+                                        for k in o:
+                                            new_scope_arg[1][k] = o[k]
+                                    else:
+                                        new_scope_arg[0].append(o)
+                                if len(scope)>1:
+                                    scope[1][1].append(new_scope_arg[0][0](*new_scope_arg[0][1:],**new_scope_arg[1]))
+                                else:
+                                    task_args.append(new_scope_arg[0][0](*new_scope_arg[0][1:],**new_scope_arg[1]))
+                                scope.pop(0)
+                            elif arg == '=':
+                                scope[0][1].pop()
+                                scope[0][1].append({g_args[i-1]: g_args[i+1]})
+                                skip = True
+                            elif scope[0][1]:
+                                scope[0][1].append(arg)
+                            elif arg in group_type_list:
+                                scope[0][1].append(group_type_list[arg])
+                            else:
+                                print('Warning: Group type', arg, 'not available.')
+                                fail = True
+                                break
+                        elif scope[0][0] == '[':
+                            if arg == ']':
+                                if len(scope)>1:
+                                    scope[1][1].append(scope[0][1])
+                                else:
+                                    task_args.append(scope[0][1])
+                                scope.pop(0)
+                            else:
+                                # Parse list elements as ints until better solution found
+                                scope[0][1].append(int(arg))
+                        elif scope[0][0] == '<':
+                            if arg == '>':
+                                new_scope_arg = [[],{}]
+                                for o in scope[0][1]:
+                                    if isinstance(o,dict):
+                                        for k in o:
+                                            new_scope_arg[1][k] = o[k]
+                                    else:
+                                        new_scope_arg[0].append(o)
+                                if len(scope)>1:
+                                    scope[1][1].append(getop(new_scope_arg[0][0],*new_scope_arg[0][1:],**new_scope_arg[1]))
+                                else:
+                                    task_args.append(getop(new_scope_arg[0][0],*new_scope_arg[0][1:],**new_scope_arg[1]))
+                                scope.pop(0)
+                            elif arg == '=':
+                                scope[0][1].pop()
+                                scope[0][1].append({g_args[i-1]: g_args[i+1]})
+                                skip = True
+                            else:
+                                scope[0][1].append(arg)
+                    elif arg == '=':
+                        task_args.pop()
+                        # TODO: fix this, e.g. op=<mult>
+                        task_args.append({g_args[i-1]: g_args[i+1]})
+                        skip = True
+                    elif arg:
+                        task_args.append(arg)
+                    if i == len(g_args)-1 and (scope or skip):
+                        fail = True
+                        break
+            if not fail:
+                new_task_arg = [[],{}]
+                for o in task_args:
+                    if isinstance(o,dict):
+                        for k in o:
+                            new_task_arg[1][k] = o[k]
+                    else:
+                        new_task_arg[0].append(o)
+                tasks.append((group_type_list[g[0]], new_task_arg[0], new_task_arg[1]))
 
-    # Main code ends here
+    total_task_time = 0
+    for t in tasks:
+        total_task_time += task(t[0], *t[1], **t[2])
 
-    end = time.clock()
-    print('\ntotal_time =',end - start,'s')
+    print('\ntotal_time =',total_task_time,'s')
