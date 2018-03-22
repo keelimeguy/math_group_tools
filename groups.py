@@ -61,7 +61,7 @@ class FiniteGroup:
         return self._hash
 
     def __format__(self, format_spec):
-        if format_spec == '#':
+        if format_spec == '#' and self.name != None:
             return self.name
         return str(self)
 
@@ -185,10 +185,46 @@ class FiniteGroup:
         return c
 
     def lcosets(self, h):
-        pass
+        if not h<=self:
+            return 'Warning: '+h.name+' is not a subset of '+self.name
+        cosets = [[h.e]+h.l]
+        remaining = []
+        for i in self.sorted():
+            if i not in cosets[0]:
+                remaining.append(i)
+        while remaining:
+            i+=1
+            a = remaining.pop()
+            cosets.append([])
+            for n in cosets[0]:
+                o = self.op(a,n)
+                for j, r in enumerate(remaining):
+                    if r == o:
+                        del remaining[j]
+                        break
+                cosets[i].append(o)
+        return cosets
 
     def rcosets(self, h):
-        pass
+        if not h<=self:
+            return 'Warning: '+h.name+' is not a subset of '+self.name
+        cosets = [[h.e]+h.l]
+        remaining = []
+        for i in self.sorted():
+            if i not in cosets[0]:
+                remaining.append(i)
+        while remaining:
+            i+=1
+            a = remaining.pop()
+            cosets.append([])
+            for n in cosets[0]:
+                o = self.op(n,a)
+                for j, r in enumerate(remaining):
+                    if r == o:
+                        del remaining[j]
+                        break
+                cosets[i].append(o)
+        return cosets
 
     def subgroup(self, k):
         if len(self.l) == k:
@@ -478,7 +514,8 @@ if __name__ == '__main__':
         return AppendRequiredLength
 
     parser = argparse.ArgumentParser(
-        description='Find properties/desciptions of a given group.')
+        description='Find properties/desciptions of a given group. Sample input:\
+                    \'python groups.py -g S 3 -t abelian orders "centralizer{S,3}" "lcosets{PermutationGroup,[[1,2]]}" "rcosets{PermutationGroup,[[1,2]]}" cache\'')
     parser.add_argument('-g', '--group', action=append_required_length(1,2), nargs='+', metavar=('group','args'),
                         help='The type of group to use, then comma separated arguments to the group.')
     parser.add_argument('-i', '--info', action="store_true",
