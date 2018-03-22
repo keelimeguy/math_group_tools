@@ -572,6 +572,7 @@ if __name__ == '__main__':
         else:
             fail = False
             skip = False
+            in_equality = []
             scope=[]
             task_args = []
             if len(g) > 1:
@@ -595,7 +596,10 @@ if __name__ == '__main__':
                                 if len(scope)>1:
                                     scope[1][1].append(new_scope_arg[0][0](*new_scope_arg[0][1:],**new_scope_arg[1]))
                                 else:
-                                    task_args.append(new_scope_arg[0][0](*new_scope_arg[0][1:],**new_scope_arg[1]))
+                                    if in_equality:
+                                        task_args.append({in_equality[0]: new_scope_arg[0][0](*new_scope_arg[0][1:],**new_scope_arg[1])})
+                                    else:
+                                        task_args.append(new_scope_arg[0][0](*new_scope_arg[0][1:],**new_scope_arg[1]))
                                 scope.pop(0)
                             elif arg == '=':
                                 scope[0][1].pop()
@@ -614,7 +618,10 @@ if __name__ == '__main__':
                                 if len(scope)>1:
                                     scope[1][1].append(scope[0][1])
                                 else:
-                                    task_args.append(scope[0][1])
+                                    if in_equality:
+                                        task_args.append({in_equality[0]: scope[0][1]})
+                                    else:
+                                        task_args.append(scope[0][1])
                                 scope.pop(0)
                             else:
                                 # Parse list elements as ints until better solution found
@@ -631,7 +638,10 @@ if __name__ == '__main__':
                                 if len(scope)>1:
                                     scope[1][1].append(getop(new_scope_arg[0][0],*new_scope_arg[0][1:],**new_scope_arg[1]))
                                 else:
-                                    task_args.append(getop(new_scope_arg[0][0],*new_scope_arg[0][1:],**new_scope_arg[1]))
+                                    if in_equality:
+                                        task_args.append({in_equality[0]: getop(new_scope_arg[0][0],*new_scope_arg[0][1:],**new_scope_arg[1])})
+                                    else:
+                                        task_args.append(getop(new_scope_arg[0][0],*new_scope_arg[0][1:],**new_scope_arg[1]))
                                 scope.pop(0)
                             elif arg == '=':
                                 scope[0][1].pop()
@@ -641,9 +651,11 @@ if __name__ == '__main__':
                                 scope[0][1].append(arg)
                     elif arg == '=':
                         task_args.pop()
-                        # TODO: fix this, e.g. op=<mult>
-                        task_args.append({g_args[i-1]: g_args[i+1]})
-                        skip = True
+                        if g_args[i+1] not in ['<', '{', '[', '']:
+                            task_args.append({g_args[i-1]: g_args[i+1]})
+                            skip = True
+                        else:
+                            in_equality = [g_args[i-1]]
                     elif arg:
                         task_args.append(arg)
                     if i == len(g_args)-1 and (scope or skip):
