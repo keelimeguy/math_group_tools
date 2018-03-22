@@ -186,7 +186,7 @@ class FiniteGroup:
 
     def lcosets(self, h):
         if not h<=self:
-            return 'Warning: '+h.name+' is not a subset of '+self.name
+            return 'Warning: '+format(h,'#')+' is not a subset of '+format(self,'#')
         cosets = [[h.e]+h.l]
         remaining = []
         for i in self.sorted():
