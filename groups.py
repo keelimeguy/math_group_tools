@@ -166,6 +166,10 @@ class FiniteGroup:
                             break
                     if go:
                         self._center.append(i)
+                if sorted(self._center) == self.sorted():
+                    self._abelian = True
+                else:
+                    self._abelian = False
         return self._center
 
     def centralizer(self, g):
@@ -200,7 +204,7 @@ class FiniteGroup:
                     g = GeneratorGroup(i, self.op)
                     if not g in subs:
                         subs.append(g)
-        return subs if subs!=[] else [NullGroup()]
+        return subs if subs else [NullGroup()]
 
 class NullGroup(FiniteGroup):
     def print_help():
@@ -484,8 +488,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    group_type_list = {'Zx':Zx, 'Z':Z, 'U':U, 'D':D, 'S':S, 'Aff':Aff, 'SL':SL,
-                        'GL':GL, 'M':M}
+    group_type_list = {'Zx':Zx, 'Z':Z, 'U':U, 'D':D, 'S':S, 'Aff':Aff, 'SL':SL, 'GL':GL, 'M':M,
+                        'FiniteGroup':FiniteGroup, 'GeneratorGroup':GeneratorGroup,
+                        'PermutationGroup':PermutationGroup, 'MatrixGroup':MatrixGroup}
 
     if args.info:
         if args.group:
