@@ -83,6 +83,7 @@ class GroupsTestCase(unittest.TestCase):
         for i in range(5,20):
             self.assertEqual(Z(i),
                 GeneratorGroup(1 if i>1 else (0 if i==1 else None), getop('addmod', i)))
+        self.assertEqual(PermutationGeneratorGroup([[[1,2,3]],[[1,2]]]), S(3))
 
     def test_permutationmatrix(self):
         self.assertEqual(Aff(D(2)), GeneratorGroup(Matrix([

@@ -9,6 +9,19 @@ class Permutation:
                 if i != l[i]:
                     d[i] = l[i]
             self.d = d
+        elif len(l)>0 and isinstance(l[0],list):
+            self.d = {}
+            for j in l:
+                last = None
+                first = None
+                for i in j:
+                    if first==None:
+                        first = i
+                    if last!=None and last != i:
+                        self.d[last] = i
+                    last = i
+                if first != None and first != last:
+                    self.d[last] = first
         else:
             self.d = {}
             last = None
@@ -21,18 +34,19 @@ class Permutation:
                 last = i
             if first != None and first != last:
                 self.d[last] = first
-        if name!=None:
-            self.name = name
-        else:
-            self.name = str(self.d)
+        self.name = name
 
     def __format__(self, format_spec):
-        if format_spec == '#':
+        if format_spec == '#' and self.name!=None:
             return self.name
         return str(self)
 
     def __str__(self):
-        return self.name+'='+str(self.d) if self.name!=str(self.d) else str(self.d)
+        st = str(self.d) if self.name!=str(self.d) else str(self.d)
+        if self.name!=None:
+            return self.name+'='+st
+        else:
+            return st
 
     __repr__ = __str__
 
@@ -68,6 +82,8 @@ class Permutation:
                     nxt = self[i]
                     if nxt != i:
                         d[i] = nxt
+            if self.name and other.name:
+                return Permutation(d,self.name+'*'+other.name)
             return Permutation(d)
         elif other:
             return self

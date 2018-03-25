@@ -259,7 +259,7 @@ class NullGroup(FiniteGroup):
 class GeneratorGroup(FiniteGroup):
     def print_help():
         print('GeneratorGroup arguments:')
-        print('\t','g = generator element')
+        print('\t','g = generator element or list of generator elements')
         print('\t','op = group operation')
         print('\t','?name = name of the group')
 
@@ -270,43 +270,71 @@ class GeneratorGroup(FiniteGroup):
                 term = op(term,i)
             return term
 
-        self._abelian = True
-        if name==None:
+        d = {}
+        l_g = [g]
+        if isinstance(g,list):
+            l_g = g
+            if name==None:
+                name = '<'+','.join([format(i,'#') for i in g])+'>'
+        elif name==None:
+            self._abelian = True
             name = '<'+format(g,'#')+'>'
-        k = 2
-        l = []
-        if g != None:
-            l = [g]
-            p = power_(g,k);
-            while not p in l:
-                l.append(p)
-                k+=1
+        for g in l_g:
+            k = 2
+            if g not in d:
+                d[g] = [g]
                 p = power_(g,k);
+                while not p in d[g]:
+                    d[g].append(p)
+                    k+=1
+                    p = power_(g,k);
+
+        l = []
+        for k in d:
+            for i in d[k]:
+                if not i in l:
+                    l.append(i)
+                for j in d:
+                    o = op(i,j)
+                    if not o in l:
+                        l.append(o)
+
         super(GeneratorGroup, self).__init__(l, op, name=name)
 
 class MatrixGeneratorGroup(GeneratorGroup):
     def print_help():
         print('MatrixGeneratorGroup arguments:')
-        print('\t','m = generator element, a matrix')
+        print('\t','m = generator element, a matrix or list of matrices')
         print('\t','op = group operation')
         print('\t','?name = name of the group')
 
     def __init__(self, m, op, name=None):
         g = m
         if not isinstance(m, Matrix):
-            g = Matrix(m)
+            if len(m[0])>0 and isinstance(m[0][0], list):
+                g = []
+                for h in m:
+                    g.append(Matrix(h))
+            else:
+                g = Matrix(m)
         super(MatrixGeneratorGroup, self).__init__(g, op, name=name)
 
 class PermutationGeneratorGroup(GeneratorGroup):
     def print_help():
         print('PermutationGeneratorGroup arguments:')
         print('\t','p = generator element, a permutation')
+        print('\t','?pname = name for the generator element, when not already named')
         print('\t','?name = name of the group')
 
-    def __init__(self, p, name=None):
+    def __init__(self, p, pname=None, name=None):
         g = p
         if not isinstance(p, Permutation):
-            g = Permutation(p)
+            if len(p[0])>0 and isinstance(p[0][0], list):
+                g = []
+                for h in p:
+                    g.append(Permutation(h))
+            else:
+                g = Permutation(p, pname)
         super(PermutationGeneratorGroup, self).__init__(g, getop('mult'), name=name)
 
 class PermutationGroup(FiniteGroup):
@@ -441,6 +469,28 @@ class S(PermutationGroup):
             p.append(d)
         super(S, self).__init__(p, name='S('+str(n)+')')
 
+class A(PermutationGroup):
+    def print_help():
+        print('A arguments:')
+        print('\t','n = group number')
+
+    def __init__(self, n):
+        n = int(n)
+        if n>0 and n<=2:
+            self._abelian = True
+        else:
+            self._abelian = False
+        l = list(itertools.permutations(range(1,n+1)))
+        p = []
+        for s in l:
+            d = {}
+            for i in range(n):
+                d[i+1] = s[i]
+            perm = Permutation(d)
+            if perm.sign()>0:
+                p.append(perm)
+        super(A, self).__init__(p, name='A('+str(n)+')')
+
 class D(PermutationGroup):
     def print_help():
         print('D arguments:')
@@ -561,7 +611,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    group_type_list = {'Zx':Zx, 'Z':Z, 'U':U, 'D':D, 'S':S, 'Aff':Aff, 'SL':SL, 'GL':GL, 'M':M,
+    group_type_list = {'Zx':Zx, 'Z':Z, 'U':U, 'A':A, 'D':D, 'S':S, 'Aff':Aff, 'SL':SL, 'GL':GL, 'M':M,
                         'FiniteGroup':FiniteGroup, 'PermutationGeneratorGroup':PermutationGeneratorGroup,
                         'MatrixGeneratorGroup':MatrixGeneratorGroup, 'GeneratorGroup':GeneratorGroup,
                         'PermutationGroup':PermutationGroup, 'MatrixGroup':MatrixGroup}
