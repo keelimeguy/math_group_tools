@@ -187,7 +187,7 @@ class FiniteGroup:
     def lcosets(self, h):
         if not h<=self:
             return 'Warning: '+format(h,'#')+' is not a subset of '+format(self,'#')
-        cosets = [[h.e]+h.l]
+        cosets = [h.l]
         remaining = []
         for i in self.sorted():
             if i not in cosets[0]:
@@ -208,11 +208,12 @@ class FiniteGroup:
     def rcosets(self, h):
         if not h<=self:
             return 'Warning: '+h.name+' is not a subset of '+self.name
-        cosets = [[h.e]+h.l]
+        cosets = [h.l]
         remaining = []
         for i in self.sorted():
             if i not in cosets[0]:
                 remaining.append(i)
+        i = 0
         while remaining:
             i+=1
             a = remaining.pop()
@@ -282,6 +283,31 @@ class GeneratorGroup(FiniteGroup):
                 k+=1
                 p = power_(g,k);
         super(GeneratorGroup, self).__init__(l, op, name=name)
+
+class MatrixGeneratorGroup(GeneratorGroup):
+    def print_help():
+        print('MatrixGeneratorGroup arguments:')
+        print('\t','m = generator element, a matrix')
+        print('\t','op = group operation')
+        print('\t','?name = name of the group')
+
+    def __init__(self, m, op, name=None):
+        g = m
+        if not isinstance(m, Matrix):
+            g = Matrix(m)
+        super(MatrixGeneratorGroup, self).__init__(g, op, name=name)
+
+class PermutationGeneratorGroup(GeneratorGroup):
+    def print_help():
+        print('PermutationGeneratorGroup arguments:')
+        print('\t','p = generator element, a permutation')
+        print('\t','?name = name of the group')
+
+    def __init__(self, p, name=None):
+        g = p
+        if not isinstance(p, Permutation):
+            g = Permutation(p)
+        super(PermutationGeneratorGroup, self).__init__(g, getop('mult'), name=name)
 
 class PermutationGroup(FiniteGroup):
     def print_help():
@@ -494,6 +520,8 @@ class Zx(FiniteGroup):
 
 
 if __name__ == '__main__':
+    print()
+
     def append_required_length(nmin,nmax):
         class AppendRequiredLength(argparse.Action):
             def __call__(self, parser, args, values, option_string=None):
@@ -534,7 +562,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     group_type_list = {'Zx':Zx, 'Z':Z, 'U':U, 'D':D, 'S':S, 'Aff':Aff, 'SL':SL, 'GL':GL, 'M':M,
-                        'FiniteGroup':FiniteGroup, 'GeneratorGroup':GeneratorGroup,
+                        'FiniteGroup':FiniteGroup, 'PermutationGeneratorGroup':PermutationGeneratorGroup,
+                        'MatrixGeneratorGroup':MatrixGeneratorGroup, 'GeneratorGroup':GeneratorGroup,
                         'PermutationGroup':PermutationGroup, 'MatrixGroup':MatrixGroup}
 
     if args.info:
