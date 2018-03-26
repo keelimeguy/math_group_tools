@@ -42,11 +42,24 @@ class Permutation:
         return str(self)
 
     def __str__(self):
-        st = str(self.d) if self.name!=str(self.d) else str(self.d)
-        if self.name!=None:
-            return self.name+'='+st
-        else:
-            return st
+        if not hasattr(self, '_str'):
+            self._str = ""
+            if len(self.d) == 0:
+                self._str = "()"
+            checked = []
+            for i in self.d:
+                if i in checked:
+                    continue
+                cur = i
+                cycle = []
+                while cur not in checked:
+                    checked.append(cur)
+                    cycle.append(cur)
+                    cur = self.d[cur]
+                self._str+=('('+' '.join([str(s) for s in cycle])+')')
+            if self.name!=None:
+                self._str = self.name+'='+self._str
+        return self._str
 
     __repr__ = __str__
 
