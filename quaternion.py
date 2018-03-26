@@ -3,8 +3,8 @@ from math import sqrt
 
 @functools.total_ordering
 class Quaternion:
-    TOLERANCE = 0.00001
-    ROUND = 5
+    TOLERANCE = 0.0000001
+    ROUND = 12
 
     @classmethod
     def q_normalize(cls, v):
@@ -27,7 +27,7 @@ class Quaternion:
         mag2 = sum(n * n for n in self.v)
         if abs(mag2 - 1.0) > self.TOLERANCE:
             mag = sqrt(mag2)
-            return Quaternion(*[n / mag for n in self.v])
+            return Quaternion(*[0 if abs(n)<self.TOLERANCE else round(n,self.ROUND) for n in [n / mag for n in self.v]])
         return self
 
     def conjugate(self):

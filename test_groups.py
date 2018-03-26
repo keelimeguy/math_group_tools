@@ -100,6 +100,8 @@ class GroupsTestCase(unittest.TestCase):
         self.assertEqual(Quaternion(0,0,0,1)*Quaternion(0,0,0,1),-1)
         self.assertEqual(Quaternion(0,1,0,0)*Quaternion(0,0,1,0)*Quaternion(0,0,0,1),-1)
         self.assertEqual(Q(8), Dic(2))
+        for i in range(1,20):
+            self.assertEqual(len(Dic(i)), 4*i)
 
 if __name__ == '__main__':
     unittest.main()

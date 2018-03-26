@@ -6,7 +6,7 @@ import re
 from math import floor, cos, sin, pi
 from fractions import gcd
 
-from operations import getop
+from operations import getop, ops
 from matrix import *
 from permutation import *
 from quaternion import *
@@ -573,18 +573,20 @@ class Dic(GeneratorGroup):
         print('\t','n = group number')
 
     def __init__(self, n):
-        n = int(n)
+        n = int(n) if n!=None else -1
         m = []
-        if n == 1:
+        if n == 0:
             m = [Quaternion(r=-1.0)]
-        if n > 1:
+        elif n == 1:
+            m = [Quaternion(i=1.0)]
+        elif n > 1:
             a = Quaternion(r=cos(pi/n), i=sin(pi/n))
             m = [a, Quaternion(j=1.0)]
         if n >= 2:
             self._abelian = False
         else:
             self._abelian = True
-        super(Dic, self).__init__(m, getop('mult', cache=((2*(n+1))**2)/2), name='Dic('+str(n)+')')
+        super(Dic, self).__init__(m, getop('mult', cache=1.5*(4*n)**2), name='Dic('+str(n)+')')
 
 class Q(Dic):
     def print_help():
@@ -592,9 +594,12 @@ class Q(Dic):
         print('\t','n = group number')
 
     def __init__(self, n):
-        m = 0 if int(n)%4 else int(int(n)/4)
-        super(Q, self).__init__(m)
-        self.name = 'Q('+str(n)+')'
+        m = None if int(n)%4 and int(n) not in [1,2] or int(n)<=0 else int(int(n)/4)
+        if int(n) == 1:
+            super(Dic, self).__init__([1], getop('mult', cache=0), name='Q('+str(n)+')')
+        else:
+            super(Q, self).__init__(m)
+            self.name = 'Q('+str(n)+')'
 
 
 
@@ -647,19 +652,20 @@ if __name__ == '__main__':
                         'PermutationGroup':PermutationGroup, 'MatrixGroup':MatrixGroup}
 
     if args.info:
+        print("Available groups:", sorted(list(group_type_list)))
+        print("\nAvailable operations:", sorted(list(ops)))
+        print('\nArguments are comma separated')
+        print('\tlists are given as, comma separated within []')
+        print('\tgroups are given as, type then arguments comma separated within {}')
+        print('\toperations are given as, type then arguments comma separated within <>')
+        print('\te.g.\n\t\'python groups.py -g M \"2,{Z,2},<matrixelement,<addmod,2>,cache=256>\"\'')
         if args.group:
-            print('Arguments are comma separated')
-            print('\tlists are given as, comma separated within []')
-            print('\tgroups are given as, type then arguments comma separated within {}')
-            print('\toperations are given as, type then arguments comma separated within <>')
-            print('\te.g. \'python groups.py -g S 4 -g M \"2,{Z,2},<matrixelement,<addmod,2>,cache=256>\"\'')
+            print()
             for g in args.group:
                 if g[0] in group_type_list:
                     group_type_list[g[0]].print_help()
                 else:
                     print('Warning: Group type', g[0], 'not available.')
-        else:
-            print("Available groups:", sorted(list(group_type_list)))
         exit(0)
 
     if args.group == None:
