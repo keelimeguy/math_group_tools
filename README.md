@@ -28,3 +28,5 @@ Basic tools for working with groups, (abstract algebra)
 `python groups.py -g S 4 -g M "2,{Z,2},<matrixelement,<addmod,2>,cache=256>"`
 
 `python groups.py -g PermutationGeneratorGroup "[[[1,2,3]],[[1,2]]]" -g S 3 -t`
+
+`python groups.py -g PermutationGeneratorGroup "[[[1,2,3]],[[1,2]]],pname=n" -g D 3 -t orders`

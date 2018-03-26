@@ -290,16 +290,22 @@ class GeneratorGroup(FiniteGroup):
                     d[g].append(p)
                     k+=1
                     p = power_(g,k);
-
         l = []
+        leftover = []
         for k in d:
             for i in d[k]:
-                if not i in l:
-                    l.append(i)
-                for j in d:
-                    o = op(i,j)
-                    if not o in l:
-                        l.append(o)
+                if i not in leftover:
+                    leftover.append(i)
+        while leftover:
+            i = leftover.pop()
+            if not i in l:
+                l.append(i)
+            for j in l:
+                o = op(i,j)
+                if not o in l:
+                    l.append(o)
+                    if not o in leftover:
+                        leftover.append(o)
 
         super(GeneratorGroup, self).__init__(l, op, name=name)
 
@@ -333,8 +339,10 @@ class PermutationGeneratorGroup(GeneratorGroup):
         if not isinstance(p, Permutation):
             if len(p[0])>0 and isinstance(p[0][0], list):
                 g = []
+                s = 0
                 for h in p:
-                    g.append(Permutation(h))
+                    s+=1
+                    g.append(Permutation(h, pname+str(s) if pname!=None else None))
             else:
                 g = Permutation(p, pname)
         super(PermutationGeneratorGroup, self).__init__(g, getop('mult'), name=name)
