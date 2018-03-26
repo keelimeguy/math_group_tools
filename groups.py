@@ -629,7 +629,7 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--info', action="store_true",
                         help="Give info on available groups or arguments to a group.\
                             e.g. \'-i -g <group>\'")
-    parser.add_argument('-t', '--task', action="append", nargs="+",
+    parser.add_argument('-t', '--task', action="append", nargs="*",
                         help='The subtasks to perform, as space separated list.\
                             Default is \'-t cyclic orders abelian center cayley subgroups cache\'.\
                             Possible tasks: cyclic, orders, abelian, center, centralizer{group}, lcosets{group}, rcosets{group}, cayley, subgroups, cache')
@@ -840,6 +840,8 @@ if __name__ == '__main__':
         if new_group:
             groups.append(new_group)
 
+    print()
+    print('*****************************************\n',flush=True)
     total_task_time = 0
     for g in groups:
         total_task_time += task(g[0], *g[1], **g[2])
