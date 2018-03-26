@@ -3,6 +3,7 @@ from groups import *
 from operations import *
 from matrix import *
 from permutation import *
+from quaternion import *
 
 class GroupsTestCase(unittest.TestCase):
     def test_operations(self):
@@ -92,6 +93,13 @@ class GroupsTestCase(unittest.TestCase):
         self.assertEqual(Aff(D(2)), GeneratorGroup(Matrix([
             [Permutation([1,2]),Permutation([])],
             [0,1]]), Aff(D(2)).op))
+
+    def test_quaternion(self):
+        self.assertEqual(Quaternion(0,1,0,0)*Quaternion(0,1,0,0),-1)
+        self.assertEqual(Quaternion(0,0,1,0)*Quaternion(0,0,1,0),-1)
+        self.assertEqual(Quaternion(0,0,0,1)*Quaternion(0,0,0,1),-1)
+        self.assertEqual(Quaternion(0,1,0,0)*Quaternion(0,0,1,0)*Quaternion(0,0,0,1),-1)
+        self.assertEqual(Q(8), Dic(2))
 
 if __name__ == '__main__':
     unittest.main()

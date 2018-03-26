@@ -3,12 +3,13 @@ import functools
 import argparse
 import time
 import re
-from math import floor
+from math import floor, cos, sin, pi
 from fractions import gcd
 
 from operations import getop
 from matrix import *
 from permutation import *
+from quaternion import *
 
 class FiniteGroup:
     def print_help():
@@ -192,6 +193,7 @@ class FiniteGroup:
         for i in self.sorted():
             if i not in cosets[0]:
                 remaining.append(i)
+        i = 0
         while remaining:
             i+=1
             a = remaining.pop()
@@ -305,10 +307,10 @@ class MatrixGeneratorGroup(GeneratorGroup):
     def print_help():
         print('MatrixGeneratorGroup arguments:')
         print('\t','m = generator element, a matrix or list of matrices')
-        print('\t','op = group operation')
+        print('\t','?op = group operation')
         print('\t','?name = name of the group')
 
-    def __init__(self, m, op, name=None):
+    def __init__(self, m, op=None, name=None):
         g = m
         if not isinstance(m, Matrix):
             if len(m[0])>0 and isinstance(m[0][0], list):
@@ -317,7 +319,7 @@ class MatrixGeneratorGroup(GeneratorGroup):
                     g.append(Matrix(h))
             else:
                 g = Matrix(m)
-        super(MatrixGeneratorGroup, self).__init__(g, op, name=name)
+        super(MatrixGeneratorGroup, self).__init__(g, op if op!=None else getop("mult"), name=name)
 
 class PermutationGeneratorGroup(GeneratorGroup):
     def print_help():
@@ -565,6 +567,34 @@ class Zx(FiniteGroup):
         self._abelian = True
         super(Zx, self).__init__([i for i in range(1,n)], getop('multmod', n, cache=0), 1 if n>1 else None, name='Zx('+str(n)+')')
 
+class Dic(GeneratorGroup):
+    def print_help():
+        print('Dic arguments:')
+        print('\t','n = group number')
+
+    def __init__(self, n):
+        n = int(n)
+        m = []
+        if n == 1:
+            m = [Quaternion(r=-1.0)]
+        if n > 1:
+            a = Quaternion(r=cos(pi/n), i=sin(pi/n))
+            m = [a, Quaternion(j=1.0)]
+        if n >= 2:
+            self._abelian = False
+        else:
+            self._abelian = True
+        super(Dic, self).__init__(m, getop('mult', cache=((2*(n+1))**2)/2), name='Dic('+str(n)+')')
+
+class Q(Dic):
+    def print_help():
+        print('Q arguments:')
+        print('\t','n = group number')
+
+    def __init__(self, n):
+        m = 0 if int(n)%4 else int(int(n)/4)
+        super(Q, self).__init__(m)
+        self.name = 'Q('+str(n)+')'
 
 
 
@@ -611,7 +641,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    group_type_list = {'Zx':Zx, 'Z':Z, 'U':U, 'A':A, 'D':D, 'S':S, 'Aff':Aff, 'SL':SL, 'GL':GL, 'M':M,
+    group_type_list = {'Zx':Zx, 'Z':Z, 'U':U, 'A':A, 'Q':Q, 'Dic':Dic, 'D':D, 'S':S, 'Aff':Aff, 'SL':SL, 'GL':GL, 'M':M,
                         'FiniteGroup':FiniteGroup, 'PermutationGeneratorGroup':PermutationGeneratorGroup,
                         'MatrixGeneratorGroup':MatrixGeneratorGroup, 'GeneratorGroup':GeneratorGroup,
                         'PermutationGroup':PermutationGroup, 'MatrixGroup':MatrixGroup}
