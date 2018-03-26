@@ -4,6 +4,7 @@ from math import sqrt
 @functools.total_ordering
 class Quaternion:
     TOLERANCE = 0.00001
+    ROUND = 5
 
     @classmethod
     def q_normalize(cls, v):
@@ -11,7 +12,7 @@ class Quaternion:
         if abs(mag2 - 1.0) > cls.TOLERANCE:
             mag = sqrt(mag2)
             v = tuple(n / mag for n in v)
-        v = tuple(0 if abs(n)<cls.TOLERANCE else round(n,5) for n in v)
+        v = tuple(0 if abs(n)<cls.TOLERANCE else round(n,cls.ROUND) for n in v)
         return v
 
     @classmethod
