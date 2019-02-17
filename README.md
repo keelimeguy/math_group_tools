@@ -3,7 +3,7 @@ Basic tools for working with groups, (abstract algebra)
 
 ## Example Input and Features:
 
-###For help and info:
+### For help and info:
 
 `python groups.py -h`
 
